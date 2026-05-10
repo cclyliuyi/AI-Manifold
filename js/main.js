@@ -47,7 +47,7 @@ const progress = document.getElementById('progress');
     // --- Artistic animated manifold-like scroll background ---
     const canvas = document.getElementById('bgCanvas');
     const ctx = canvas.getContext('2d');
-    const DPR_CAP = 1;
+    const DPR_CAP = window.innerWidth > 900 ? 1.35 : 1;
     let w = 0, h = 0, dpr = 1;
     let t = 0;
     let smoothScroll = 0;
@@ -62,7 +62,7 @@ const progress = document.getElementById('progress');
     }
     const rand = mulberry32(20260510);
 
-    const particleBaseCount = Math.min(130, Math.max(56, Math.round(window.innerWidth * 0.07)));
+    const particleBaseCount = window.innerWidth < 720 ? Math.min(140, Math.max(95, Math.round(window.innerWidth * 0.13))) : Math.min(245, Math.max(155, Math.round(window.innerWidth * 0.13)));
     let particles = [];
     let fieldPoints = [];
 
@@ -95,8 +95,9 @@ const progress = document.getElementById('progress');
           arc: 0.3 + rand() * 1.0
         };
       });
-      fieldPoints = Array.from({ length: Math.max(30, Math.round(w / 38)) }, (_, i) => ({
-        x: i / Math.max(1, Math.round(w / 38) - 1),
+      const pointCount = Math.max(62, Math.round(w / 20));
+      fieldPoints = Array.from({ length: pointCount }, (_, i) => ({
+        x: i / Math.max(1, pointCount - 1),
         phase: rand() * Math.PI * 2,
         depth: 0.5 + rand() * 1.6
       }));
@@ -144,9 +145,9 @@ const progress = document.getElementById('progress');
 
     function drawVeils(progress) {
       const focus = ease(clamp((progress - 0.68) / 0.32, 0, 1));
-      for (let j = 0; j < 2; j++) {
+      for (let j = 0; j < 3; j++) {
         ctx.beginPath();
-        const amp = 26 + j * 14;
+        const amp = 30 + j * 17;
         for (let i = 0; i <= 48; i++) {
           const x = (i / 48) * w;
           const y = h * (0.28 + j * 0.16)
@@ -169,11 +170,11 @@ const progress = document.getElementById('progress');
     function drawRibbon(progress) {
       const signal = ease(clamp((progress - 0.18) / 0.62, 0, 1));
       const focus = ease(clamp((progress - 0.68) / 0.32, 0, 1));
-      const bandCount = 5;
+      const bandCount = window.innerWidth < 720 ? 7 : 11;
       for (let band = 0; band < bandCount; band++) {
         const bandMix = band / (bandCount - 1);
         const spread = lerp(180, 22, signal) * (0.65 + Math.abs(bandMix - 0.5) * 1.55) * (1 - focus * 0.68);
-        const alpha = (0.018 + signal * 0.042) * (1 - Math.abs(bandMix - 0.5) * 0.58) * (1 - focus * 0.18);
+        const alpha = (0.034 + signal * 0.060) * (1 - Math.abs(bandMix - 0.5) * 0.54) * (1 - focus * 0.06);
         const hueShift = Math.round(188 + bandMix * 26 + progress * 18);
         ctx.beginPath();
         for (let i = 0; i < fieldPoints.length; i++) {
@@ -204,7 +205,7 @@ const progress = document.getElementById('progress');
             ? `rgba(255,255,255,${0.08 + signal * 0.12})`
             : `rgba(232,192,109,${0.025 + signal * 0.05})`;
         ctx.shadowColor = j === 2 ? 'rgba(232,192,109,.18)' : 'rgba(83,226,255,.24)';
-        ctx.shadowBlur = 22;
+        ctx.shadowBlur = 30;
         ctx.stroke();
       }
       ctx.shadowBlur = 0;
@@ -233,11 +234,21 @@ const progress = document.getElementById('progress');
         const r = Math.round(83 * blend + 232 * focus + 18);
         const g = Math.round(226 * blend + 192 * focus + 20);
         const b = Math.round(255 * blend + 109 * focus);
-        const alpha = (0.12 + p.depth * 0.18) * (0.7 + toManifold * 0.55) * (1 - focus * 0.08);
+        const alpha = (0.24 + p.depth * 0.24) * (0.95 + toManifold * 0.72) * (1 - focus * 0.02);
         ctx.beginPath();
         ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.arc(x, y, radius * 1.20, 0, Math.PI * 2);
         ctx.fill();
+
+        // Converging luminous filaments: sparse enough for performance, visible enough to keep the 聚合感.
+        if (focus > 0.06 && p.arc > 0.70) {
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(lerp(x, fx, 0.26 + focus * 0.26), lerp(y, fy, 0.26 + focus * 0.26));
+          ctx.strokeStyle = `rgba(232,192,109,${0.055 + focus * 0.16})`;
+          ctx.lineWidth = 0.7 + focus * 1.05;
+          ctx.stroke();
+        }
       });
 
       // Semantic convergence at center
@@ -272,7 +283,7 @@ const progress = document.getElementById('progress');
       }
     }
 
-    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const prefersReducedMotion = false; // Keep the manifold flow alive for this presentation page.
     let isVisible = true;
     let lastFrame = 0;
     document.addEventListener('visibilitychange', () => { isVisible = !document.hidden; });
@@ -281,9 +292,11 @@ const progress = document.getElementById('progress');
       smoothScroll += (scrollProgress - smoothScroll) * 0.06;
       t += 0.013;
       drawBackdrop(smoothScroll);
+      ctx.globalCompositeOperation = 'lighter';
       drawVeils(smoothScroll);
       drawRibbon(smoothScroll);
       drawParticles(smoothScroll);
+      ctx.globalCompositeOperation = 'source-over';
     }
 
     function animate(now) {
@@ -291,9 +304,8 @@ const progress = document.getElementById('progress');
         requestAnimationFrame(animate);
         return;
       }
-      // Cap the background to ~30 FPS. Text and scrolling remain native-smooth,
-      // while the canvas no longer burns CPU/GPU every display frame.
-      if (!lastFrame || now - lastFrame > 32) {
+      // Cap the background to about 45 FPS: keeps the flow alive while remaining much lighter than 60 FPS.
+      if (!lastFrame || now - lastFrame > 22) {
         renderFrame();
         lastFrame = now;
       }
@@ -303,4 +315,4 @@ const progress = document.getElementById('progress');
     window.addEventListener('resize', resizeCanvas, { passive: true });
     resizeCanvas();
     renderFrame();
-    if (!prefersReducedMotion) requestAnimationFrame(animate);
+    requestAnimationFrame(animate);

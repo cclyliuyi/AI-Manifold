@@ -1,6 +1,6 @@
-# AI-Manifold 优化版网页项目
+# AI-Manifold GitHub Pages 优化修正版
 
-这是为 GitHub Pages 优化后的版本。
+这是为 GitHub Pages 优化后的版本，可直接部署到仓库根目录。
 
 ## 上传方式
 
@@ -10,13 +10,30 @@
 - `assets/`
 - `css/`
 - `js/`
+- `README.md`（可选）
 
 上传后提交 commit，GitHub Pages 会自动更新。
 
-## 优化点
+## 本版修正
 
-- 图片从 PNG 转为 WebP，并从 HTML 中拆出，不再 Base64 内嵌。
-- 图片使用 `loading="lazy"` 和 `decoding="async"`。
-- CSS 与 JS 拆分，浏览器可以缓存。
-- Canvas 动态背景降低 DPR、粒子数、流形曲线层数，并限制约 30 FPS。
-- 保留滚动演化、中央高信噪比亮点和艺术化流形背景。
+- 修复“AI 处理增益 ≈ n/K”公式排版，避免 K 偏移过大。
+- 恢复并增强背景的流动粒子、流形光带和聚合动画。
+- 保留优化：图片 WebP、懒加载、CSS/JS 拆分、Canvas 控制帧率。
+- 最终高信噪比亮点仍在页面正中央。
+
+## 推荐上传结构
+
+```text
+AI-Manifold/
+  index.html
+  assets/
+  css/
+  js/
+  README.md
+```
+
+## v3 修复说明
+
+- 修复“AI 处理增益 ≈ n / K”公式：改为稳定的一行排版，避免 n/K 被字体和行高挤歪。
+- 恢复并增强动态流形背景：粒子数量适度增加、流形光带层数恢复、中央聚合光丝更明显。
+- 保持优化结构：图片仍为 WebP 外部资源，`loading=lazy`，CSS/JS 拆分，适合 GitHub Pages。
